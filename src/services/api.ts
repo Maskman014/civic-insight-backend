@@ -1,30 +1,4 @@
-import { supabase } from '../lib/supabaseClient';
-
-// Report types
-export interface Report {
-  id: string;
-  user_id: string;
-  title: string;
-  description?: string;
-  status: string;
-  location?: string;
-  created_at: string;
-  updated_at: string;
-  profiles?: {
-    full_name?: string;
-  };
-}
-
-export interface Comment {
-  id: string;
-  report_id: string;
-  author: string;
-  content: string;
-  created_at: string;
-  profiles?: {
-    full_name?: string;
-  };
-}
+import { supabase } from '@/lib/supabaseClient';
 
 export interface Profile {
   id: string;
@@ -34,116 +8,101 @@ export interface Profile {
   created_at: string;
 }
 
-// Create a new report
-export const createReport = async (reportData: {
+export interface Report {
+  id: string;
+  user_id: string;
   title: string;
   description?: string;
+  status: string;
   location?: string;
-}) => {
-  const { data, error } = await supabase
-    .from('reports')
-    .insert([reportData])
-    .select()
-    .single();
+  created_at: string;
+  updated_at: string;
+}
 
-  if (error) throw error;
-  return data;
-};
-
-// List all reports with profile information
-export const listReports = async () => {
-  const { data, error } = await supabase
-    .from('reports')
-    .select(`
-      *,
-      profiles (
-        full_name
-      )
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data as Report[];
-};
-
-// Get a single report with comments
-export const getReport = async (reportId: string) => {
-  const { data, error } = await supabase
-    .from('reports')
-    .select(`
-      *,
-      profiles (
-        full_name
-      ),
-      comments (
-        *,
-        profiles (
-          full_name
-        )
-      )
-    `)
-    .eq('id', reportId)
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// Add a comment to a report
-export const addComment = async (commentData: {
+export interface Comment {
+  id: string;
   report_id: string;
+  author: string;
   content: string;
-}) => {
+  created_at: string;
+}
+
+// Profile functions
+export async function createProfile(profileData: Omit<Profile, 'id' | 'created_at'>) {
   const { data, error } = await supabase
-    .from('comments')
-    .insert([commentData])
+    .from('profiles')
+    .insert(profileData)
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
-};
+}
 
-// Update report status
-export const updateReportStatus = async (reportId: string, status: string) => {
+export async function getProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+// Report functions
+export async function createReport(reportData: Omit<Report, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabase
+    .from('reports')
+    .insert(reportData)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function listReports() {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateReportStatus(reportId: string, status: string) {
   const { data, error } = await supabase
     .from('reports')
     .update({ status })
     .eq('id', reportId)
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
-};
+}
 
-// Create or update user profile
-export const upsertProfile = async (profileData: {
-  id: string;
-  full_name?: string;
-  avatar_url?: string;
-}) => {
+// Comment functions
+export async function addComment(commentData: Omit<Comment, 'id' | 'created_at'>) {
   const { data, error } = await supabase
-    .from('profiles')
-    .upsert(profileData)
+    .from('comments')
+    .insert(commentData)
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
-};
+}
 
-// Get current user profile
-export const getCurrentProfile = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
+export async function getCommentsByReport(reportId: string) {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('comments')
     .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
+    .eq('report_id', reportId)
+    .order('created_at', { ascending: true });
+  
+  if (error) throw error;
   return data;
-};
+}
