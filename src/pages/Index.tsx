@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,17 +8,29 @@ import { Report, listReports } from "@/services/api";
 import { ReportCard } from "@/components/ReportCard";
 import { CreateReportForm } from "@/components/CreateReportForm";
 import { CommentsSection } from "@/components/CommentsSection";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReportForComments, setSelectedReportForComments] = useState<Report | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    loadReports();
-  }, []);
+    if (user) {
+      loadReports();
+    }
+  }, [user]);
 
   const loadReports = async () => {
     try {
@@ -44,6 +57,15 @@ const Index = () => {
       setSelectedReportForComments(report);
     }
   };
+
+  // Show loading while checking authentication
+  if (authLoading || !user) {
+    return (
+      <div className="container mx-auto py-8 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   if (selectedReportForComments) {
     return (

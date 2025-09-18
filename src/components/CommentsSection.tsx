@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { MessageCircle, Send } from "lucide-react";
 import { Comment, getCommentsByReport, addComment } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface CommentsSectionProps {
@@ -18,6 +19,7 @@ export const CommentsSection = ({ reportId, reportTitle, onClose }: CommentsSect
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,6 +44,15 @@ export const CommentsSection = ({ reportId, reportTitle, onClose }: CommentsSect
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add comments",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!newComment.trim()) {
       toast({
         title: "Error",
@@ -56,7 +67,7 @@ export const CommentsSection = ({ reportId, reportTitle, onClose }: CommentsSect
       await addComment({
         content: newComment,
         report_id: reportId,
-        author: 'temp-user-id' // This will be replaced with actual user ID when auth is implemented
+        author: user.id
       });
 
       toast({
@@ -66,10 +77,11 @@ export const CommentsSection = ({ reportId, reportTitle, onClose }: CommentsSect
 
       setNewComment("");
       loadComments(); // Reload comments
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
       toast({
         title: "Error",
-        description: "Failed to add comment",
+        description: error.message || "Failed to add comment",
         variant: "destructive"
       });
     } finally {

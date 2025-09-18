@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createReport } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateReportFormProps {
@@ -20,11 +21,21 @@ export const CreateReportForm = ({ onReportCreated }: CreateReportFormProps) => 
     status: "open"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create reports",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!formData.title.trim()) {
       toast({
         title: "Error",
@@ -41,7 +52,7 @@ export const CreateReportForm = ({ onReportCreated }: CreateReportFormProps) => 
         description: formData.description || null,
         location: formData.location || null,
         status: formData.status,
-        user_id: 'temp-user-id' // This will be replaced with actual user ID when auth is implemented
+        user_id: user.id
       });
 
       toast({
@@ -56,10 +67,11 @@ export const CreateReportForm = ({ onReportCreated }: CreateReportFormProps) => 
         status: "open"
       });
       onReportCreated();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating report:', error);
       toast({
         title: "Error",
-        description: "Failed to create report",
+        description: error.message || "Failed to create report",
         variant: "destructive"
       });
     } finally {
