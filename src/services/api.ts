@@ -28,7 +28,7 @@ export interface Comment {
 }
 
 // Profile functions
-export async function createProfile(profileData: Omit<Profile, 'id' | 'created_at'>) {
+export async function createProfile(profileData: Omit<Profile, 'created_at'>) {
   const { data, error } = await supabase
     .from('profiles')
     .insert(profileData)
